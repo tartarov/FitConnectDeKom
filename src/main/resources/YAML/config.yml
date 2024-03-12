@@ -1,0 +1,24 @@
+#####################################################################
+# MANDATORY USER SETTINGS                                           #
+#                                                                   #
+# PLEASE FILL OUT PLACEHOLDERS !                                     #
+#####################################################################
+
+# To create credentials for sender and subscriber please have a look at:
+#
+#  Account registration: https://docs.fitko.de/fit-connect/docs/getting-started/get-started
+#  Creating a subscriber: https://docs.fitko.de/fit-connect/docs/receiving/destination
+#  Self-Service-Portal (Test-Env): https://portal.auth-testing.fit-connect.fitko.dev/login
+
+senderConfig:
+  clientId: "1911038f-e03f-44da-8046-cba8ddf10b1b"
+  clientSecret: "Za9_ju42-lkoDhzJ6fPQwY6gHxxyG5t35dBZ-JLCRLk"
+
+subscriberConfig:
+  clientId:
+  clientSecret:
+
+  privateDecryptionKeyPaths:
+  privateSigningKeyPath:
+
+activeEnvironment: TEST
