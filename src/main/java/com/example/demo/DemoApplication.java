@@ -1,10 +1,9 @@
 package com.example.demo;
 
-import com.nimbusds.jose.shaded.gson.JsonArray;
-import com.nimbusds.jose.shaded.gson.JsonElement;
-import com.nimbusds.jose.shaded.gson.JsonObject;
-import com.nimbusds.jose.shaded.gson.JsonParser;
+import ch.qos.logback.core.status.Status;
+import com.nimbusds.jose.shaded.gson.*;
 import dev.fitko.fitconnect.api.config.ApplicationConfig;
+import dev.fitko.fitconnect.api.domain.model.event.SubmissionStatus;
 import dev.fitko.fitconnect.api.domain.model.metadata.data.MimeType;
 import dev.fitko.fitconnect.api.domain.model.replychannel.ReplyChannel;
 import dev.fitko.fitconnect.api.domain.model.route.Area;
@@ -17,6 +16,7 @@ import dev.fitko.fitconnect.client.bootstrap.ClientFactory;
 import dev.fitko.fitconnect.client.router.DestinationSearch;
 import dev.fitko.fitconnect.client.sender.model.Attachment;
 import dev.fitko.fitconnect.client.sender.model.SendableSubmission;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -30,9 +30,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @SpringBootApplication
 @RestController
@@ -89,15 +87,13 @@ public class DemoApplication {
 				.setReplyChannel(ReplyChannel.fromEmail("themotherus@gmail.com")).build();
 
 		final SentSubmission sentSubmission = senderClient.send(sendableSubmission);
-		MimeType dataMimeType = MimeType.fromValue(sendableSubmission.getDataMimeType());
-		String var10002 = sendableSubmission.getDataMimeType();
 
 		JSONObject responseData = new JSONObject();
 		responseData.put("message", "Submission received successfully!");
+		responseData.put("sentSubmission" , sentSubmission);
 		responseData.put("caseID", sentSubmission.getCaseId());
 		responseData.put("submissionID", sentSubmission.getSubmissionId());
 		responseData.put("submissionStatus", senderClient.getStatusForSubmission(sentSubmission).getStatus());
-		responseData.put("antragFile", sentSubmission);
 
 		return ResponseEntity.ok(responseData);
 	}
@@ -347,12 +343,38 @@ public class DemoApplication {
 	}
 
 
-//	@GetMapping("/getSchemaUri")
-	//private static ResponseEntity<String> getSchemaUri(@RequestParam(value="leikaKey", defaultValue = "World") String leikaKey) {
+	@PostMapping("/updateAntraege")
+	private static ResponseEntity<JSONArray> updateAntraege(@RequestBody String requestBody) {
+		System.out.println("requestBody: " + requestBody);
+		JsonObject jsonObject = JsonParser.parseString(requestBody.toString()).getAsJsonObject();
+		JsonArray antragArray = jsonObject.getAsJsonArray("antragArray");
 
-		//final E submissionStatus = senderClient.getSubmissionStatus(sentSubmission);
+		JSONArray statusArray = new JSONArray();
 
-		//LOGGER.info("Current status for submission {} => {}", sentSubmission.getSubmissionId(), submissionStatus.getStatus());
-		//return ResponseEntity.ok("submissionStatus sucessfully updated: " + submissionStatus);
-//	}
+		for (int i = 0; i < antragArray.size(); i++) {
+			String antragString = antragArray.get(i).toString();
+			String cleanedJsonString = antragString.substring(1, antragString.length() - 1).replace("\\\"", "\"");
+			System.out.println(cleanedJsonString);
+			JsonObject antragObject = JsonParser.parseString(cleanedJsonString).getAsJsonObject();
+			System.out.println(antragObject);
+			UUID destinationId = UUID.fromString(antragObject.get("destinationId").getAsString());
+			UUID submissionId = UUID.fromString(antragObject.get("submissionId").getAsString());
+			UUID caseId = UUID.fromString(antragObject.get("caseId").getAsString());
+
+			SentSubmission antragSentSubmission = SentSubmission.builder()
+					.destinationId(destinationId)
+					.submissionId(submissionId)
+					.caseId(caseId)
+					.build();
+
+			SubmissionStatus submissionStatus = senderClient.getStatusForSubmission(antragSentSubmission);
+			System.out.println(submissionStatus.getStatus());
+			JSONObject statusObject = new JSONObject();
+			statusObject.put(submissionId.toString(), submissionStatus.getStatus());
+
+			// Füge das Objekt dem statusArray hinzu
+			statusArray.add(statusObject);
+		}
+		return ResponseEntity.ok(statusArray);
+	}
 }
